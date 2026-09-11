@@ -144,10 +144,16 @@ function buildDigest(dateStr: string, isFirstRun: boolean, steam: FeedResult, yo
 }
 
 async function sendNtfy(topic: string, title: string, message: string): Promise<void> {
-  const res = await fetch(`https://ntfy.sh/${topic}`, {
+  // JSON publish endpoint (not header-based) so non-ASCII title/message (Polish
+  // diacritics) don't hit the ByteString restriction on raw HTTP header values.
+  const res = await fetch("https://ntfy.sh/", {
     method: "POST",
-    headers: { Title: title, "Content-Type": "text/plain; charset=utf-8" },
-    body: message.slice(0, NTFY_MESSAGE_LIMIT),
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+    body: JSON.stringify({
+      topic,
+      title,
+      message: message.slice(0, NTFY_MESSAGE_LIMIT),
+    }),
   });
   if (!res.ok) throw new Error(`ntfy publish failed: ${res.status} ${await res.text()}`);
 }
